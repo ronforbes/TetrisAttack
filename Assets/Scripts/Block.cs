@@ -7,6 +7,7 @@ public class Block : MonoBehaviour
 	{
 		Static,
 		Swapping,
+		Falling,
 		Dying,
 	}
 
@@ -17,11 +18,13 @@ public class Block : MonoBehaviour
 	public ComboTabulator CurrentCombo;
 	public Swapper.SwapDirection Direction;
 	public bool SwapFront;
+	public float FallElapsed;
 	public float DieElapsed;
 	public Vector2 DyingAxis;
 
 	public const int FlavorCount = 5;
-	public const float DieDuration = 1.5f;
+	public const float FallDuration = 0.1f;
+	public const float DieDuration = 1.5f;	
 
 	BlockManager BlockManager;
 	Grid Grid;
@@ -49,8 +52,47 @@ public class Block : MonoBehaviour
 
 	// Update is called once per frame
 	void Update () {
+		// don't update the creep row
+		if(Y == 0)
+			return;
+
 		switch(State)
 		{
+		case BlockState.Static:
+			// we may have to fall
+
+			if(Grid.StateAt(X, Y - 1) == GridElement.ElementState.Empty)
+				StartFalling();
+			break;
+		case BlockState.Falling:
+			FallElapsed += Time.deltaTime;
+
+			if(FallElapsed >= FallDuration)
+			{
+				if(Grid.StateAt(X, Y - 1) == GridElement.ElementState.Empty)
+				{
+					// shift our grid position down to the next row
+					Y--;
+					FallElapsed = 0.0f;
+
+					Grid.Remove(X, Y + 1, this);
+					Grid.AddBlock(X, Y, this, GridElement.ElementState.Falling);
+				}
+				else
+				{
+					// we've landed
+
+					// change our state
+					State = BlockState.Static;
+
+					// update the grid
+					Grid.ChangeState(X, Y, this, GridElement.ElementState.Block);
+
+					// register for elimination checking
+					Grid.RequestEliminationCheck(this);
+				}
+			}
+			break;
 		case BlockState.Dying:
 			DieElapsed += Time.deltaTime;
 
@@ -85,6 +127,25 @@ public class Block : MonoBehaviour
 		X = swapX;
 
 		Grid.AddBlock(X, Y, this, GridElement.ElementState.Block);
+	}
+
+	public void StartFalling()
+	{
+		if(State != BlockState.Static)
+			return;
+
+		// change our state
+		State = BlockState.Falling;
+
+		FallElapsed = FallDuration;
+
+		Grid.ChangeState(X, Y, this, GridElement.ElementState.Falling);
+
+		if(Y < Grid.PlayHeight - 1)
+		{
+			if(Grid.StateAt(X, Y + 1) == GridElement.ElementState.Block)
+				Grid.BlockAt(X, Y + 1).StartFalling();
+		}
 	}
 
 	public void StartDying(int sparkNumber)

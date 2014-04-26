@@ -6,6 +6,7 @@ public class Displayer : MonoBehaviour {
 	public Swapper Swapper;
 
 	Color[] blockColors = new Color[Block.FlavorCount];
+	Color[] creepColors = new Color[Block.FlavorCount];
 	Color flashColor = new Color(1.0f, 1.0f, 1.0f);
 
 	const float gridElementLength = 1.0f;
@@ -19,6 +20,12 @@ public class Displayer : MonoBehaviour {
 		blockColors[2] = new Color(0.0f,  0.6f,  0.05f);
 		blockColors[3] = new Color(0.85f, 0.85f, 0.0f);
 		blockColors[4] = new Color(1.0f,  0.4f,  0.0f);
+
+		creepColors[0] = new Color(0.25f * 0.73f, 0.25f * 0.0f,  0.25f * 0.73f);
+		creepColors[1] = new Color(0.25f * 0.2f,  0.25f * 0.2f,  0.25f *  0.8f);
+		creepColors[2] = new Color(0.25f * 0.0f,  0.25f * 0.6f,  0.25f * 0.05f);
+		creepColors[3] = new Color(0.25f * 0.85f, 0.25f * 0.85f, 0.25f * 0.0f);
+		creepColors[4] = new Color(0.25f * 1.0f,  0.25f * 0.4f,  0.25f * 0.0f);
 	}
 	
 	// Update is called once per frame
@@ -55,7 +62,10 @@ public class Displayer : MonoBehaviour {
 		switch(block.State)
 		{
 		case Block.BlockState.Static:
-			block.transform.Find("Cube").renderer.material.color = blockColors[block.Flavor];
+			if(block.Y != 0)
+				block.transform.Find("Cube").renderer.material.color = blockColors[block.Flavor];
+			else
+				block.transform.Find("Cube").renderer.material.color = creepColors[block.Flavor];
 			
 			block.transform.position = new Vector3(x, y, 0.0f);
 			block.transform.rotation = Quaternion.identity;
@@ -89,6 +99,12 @@ public class Displayer : MonoBehaviour {
 			float time = Swapper.SwapElapsed / Swapper.SwapDuration;
 			block.transform.position = Vector3.Slerp(fromRelCenter, toRelCenter, time);
 			block.transform.position += center;
+			break;
+
+		case Block.BlockState.Falling:
+			y += gridElementLength - gridElementLength * block.FallElapsed / Block.FallDuration;
+
+			block.transform.position = new Vector3(x, y, 0.0f);
 			break;
 
 		case Block.BlockState.Dying:

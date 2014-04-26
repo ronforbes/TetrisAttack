@@ -7,7 +7,8 @@ public class GridElement
 	{
 		Empty,
 		Block,
-		Immutable
+		Immutable,
+		Falling
 	}
 
 	public enum ElementType
