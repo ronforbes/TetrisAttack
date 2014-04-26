@@ -7,22 +7,29 @@ public class Block : MonoBehaviour
 	{
 		Static,
 		Swapping,
+		Dying,
 	}
 
 	public int Id;
 	public int Flavor;
 	public int X, Y;
 	public BlockState State;
+	public ComboTabulator CurrentCombo;
 	public Swapper.SwapDirection Direction;
 	public bool SwapFront;
+	public float DieElapsed;
+	public Vector2 DyingAxis;
 
 	public const int FlavorCount = 5;
-	
-	int swapVelocity;
+	public const float DieDuration = 1.5f;
+
+	BlockManager BlockManager;
+	Grid Grid;
 
 	// Use this for initialization
 	void Start () {
-	
+		BlockManager = GameObject.Find("Block Manager").GetComponent<BlockManager>();
+		Grid = GameObject.Find("Grid").GetComponent<Grid>();
 	}
 
 	public void InitializeStatic(int x, int y, int flavor)
@@ -33,6 +40,8 @@ public class Block : MonoBehaviour
 
 		State = BlockState.Static;
 
+		// Initializing Grid here again. It looks like Start isn't getting called until the next frame
+		Grid = GameObject.Find("Grid").GetComponent<Grid>();
 		Grid.AddBlock(x, y, this, GridElement.ElementState.Block);
 
 		transform.position = new Vector3(X, Y, 0.0f);
@@ -40,7 +49,20 @@ public class Block : MonoBehaviour
 
 	// Update is called once per frame
 	void Update () {
+		switch(State)
+		{
+		case BlockState.Dying:
+			DieElapsed += Time.deltaTime;
 
+			if(DieElapsed >= DieDuration)
+			{
+				// update the grid
+				Grid.Remove(X, Y, this);
+
+				BlockManager.DeleteBlock(this);
+			}
+			break;
+		}
 	}
 
 	public void StartSwapping(Swapper.SwapDirection direction, bool swapFront)
@@ -63,5 +85,15 @@ public class Block : MonoBehaviour
 		X = swapX;
 
 		Grid.AddBlock(X, Y, this, GridElement.ElementState.Block);
+	}
+
+	public void StartDying(int sparkNumber)
+	{
+		State = BlockState.Dying;
+		DieElapsed = 0.0f;
+
+		Grid.ChangeState(X, Y, this, GridElement.ElementState.Immutable);
+
+		DyingAxis = Random.insideUnitCircle;
 	}
 }

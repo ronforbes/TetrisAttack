@@ -6,8 +6,11 @@ public class Displayer : MonoBehaviour {
 	public Swapper Swapper;
 
 	Color[] blockColors = new Color[Block.FlavorCount];
+	Color flashColor = new Color(1.0f, 1.0f, 1.0f);
 
 	const float gridElementLength = 1.0f;
+	const float blockDyingFlashDuration = 0.2f;
+	const float blockDyingSpeed = 1000;
 
 	// Use this for initialization
 	void Start () {
@@ -71,8 +74,6 @@ public class Displayer : MonoBehaviour {
 
 			block.transform.Find("Cube").renderer.material.color = blockColors[block.Flavor];
 
-			//block.transform.position = Vector3.Slerp(block.transform.position)
-
 			Vector3 center = new Vector3(x + dX, y, 0.0f);
 			if(block.SwapFront)
 			{
@@ -88,7 +89,33 @@ public class Displayer : MonoBehaviour {
 			float time = Swapper.SwapElapsed / Swapper.SwapDuration;
 			block.transform.position = Vector3.Slerp(fromRelCenter, toRelCenter, time);
 			block.transform.position += center;
+			break;
 
+		case Block.BlockState.Dying:
+			// when dying, first we flash
+			if(block.DieElapsed < blockDyingFlashDuration)
+			{
+				float flash = block.DieElapsed * 4.0f / blockDyingFlashDuration;
+				if(flash > 2.0f)
+					flash = 4.0f - flash;
+				if(flash > 1.0f)
+					flash = 2.0f - flash;
+
+				block.transform.Find("Cube").renderer.material.color = new Color(
+					blockColors[block.Flavor].r + flash * (flashColor.r - blockColors[block.Flavor].r),
+					blockColors[block.Flavor].g + flash * (flashColor.g - blockColors[block.Flavor].g),
+					blockColors[block.Flavor].b + flash * (flashColor.b - blockColors[block.Flavor].b));
+			}
+			else
+			{
+				block.transform.Find("Cube").renderer.material.color = blockColors[block.Flavor];
+
+				block.transform.Find("Cube").transform.Rotate(new Vector3(block.DyingAxis.x, block.DyingAxis.y, 0.0f), block.DieElapsed * block.DieElapsed * Time.deltaTime * blockDyingSpeed);
+
+				float scale = 1.0f - block.DieElapsed / Block.DieDuration;
+
+				block.transform.localScale = new Vector3(scale, scale, scale);
+			}
 			break;
 		}
 	}

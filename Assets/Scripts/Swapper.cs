@@ -12,6 +12,7 @@ public class Swapper : MonoBehaviour
 	
 	public float SwapElapsed;
 	public float SwapDuration = 0.1f;
+	public Grid Grid;
 
 	bool swapping;
 	Block selectedBlock;
@@ -127,6 +128,15 @@ public class Swapper : MonoBehaviour
 					leftBlock.FinishSwapping(leftBlock.X + 1);
 				if(rightBlock)
 					rightBlock.FinishSwapping(rightBlock.X - 1);
+
+				if(leftBlock)
+				{
+					Grid.RequestEliminationCheck(leftBlock);
+				}
+				if(rightBlock)
+				{
+					Grid.RequestEliminationCheck(rightBlock);
+				}
 
 				leftBlock = null;
 				rightBlock = null;
