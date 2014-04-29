@@ -38,7 +38,7 @@ public class Grid : MonoBehaviour
 	public const int GridSize = PlayWidth * PlayHeight;
 	public const int MinimumPatternLength = 3;
 
-	public GridElement[,] grid = new GridElement[Grid.PlayWidth, Grid.PlayHeight];
+	GridElement[,] grid = new GridElement[Grid.PlayWidth, Grid.PlayHeight];
 	CheckRegistryElement[] checkRegistry = new CheckRegistryElement[BlockManager.BlockStoreSize];
 	int checkCount;
 	int topOccupiedRow;
@@ -279,7 +279,6 @@ public class Grid : MonoBehaviour
 			{
 				if(killX != x)
 				{
-					print (killX + ", " + y + ": " + BlockAt(killX, y).Flavor);
 					BlockAt(killX, y).StartDying(magnitude);
 				}
 			}
@@ -300,7 +299,7 @@ public class Grid : MonoBehaviour
 
 	public bool ShiftUp()
 	{
-		if(topOccupiedRow == PlayHeight - 1) 
+		if(topOccupiedRow == PlayHeight - 1)
 			return false;
 
 		// shift the grid
@@ -308,7 +307,9 @@ public class Grid : MonoBehaviour
 		{
 			for(int x = 0; x < PlayWidth; x++)
 			{
-				grid[x, y + 1] = grid[x, y];
+				grid[x, y + 1].Element = grid[x, y].Element;
+				grid[x, y + 1].Type = grid[x, y].Type;
+				grid[x, y + 1].State = grid[x, y].State;
 			}
 		}
 

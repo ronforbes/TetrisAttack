@@ -26,13 +26,15 @@ public class Block : MonoBehaviour
 	public const float FallDuration = 0.1f;
 	public const float DieDuration = 1.5f;	
 
-	BlockManager BlockManager;
-	Grid Grid;
+	BlockManager blockManager;
+	Grid grid;
+	Game game;
 
 	// Use this for initialization
 	void Start () {
-		BlockManager = GameObject.Find("Block Manager").GetComponent<BlockManager>();
-		Grid = GameObject.Find("Grid").GetComponent<Grid>();
+		blockManager = GameObject.Find("Block Manager").GetComponent<BlockManager>();
+		grid = GameObject.Find("Grid").GetComponent<Grid>();
+		game = GameObject.Find ("Game").GetComponent<Game>();
 	}
 
 	public void InitializeStatic(int x, int y, int flavor)
@@ -44,8 +46,8 @@ public class Block : MonoBehaviour
 		State = BlockState.Static;
 
 		// Initializing Grid here again. It looks like Start isn't getting called until the next frame
-		Grid = GameObject.Find("Grid").GetComponent<Grid>();
-		Grid.AddBlock(x, y, this, GridElement.ElementState.Block);
+		grid = GameObject.Find("Grid").GetComponent<Grid>();
+		grid.AddBlock(x, y, this, GridElement.ElementState.Block);
 
 		transform.position = new Vector3(X, Y, 0.0f);
 	}
@@ -60,7 +62,7 @@ public class Block : MonoBehaviour
 		{
 		case BlockState.Static:
 			// we may have to fall
-			if(Grid.StateAt(X, Y - 1) == GridElement.ElementState.Empty)
+			if(grid.StateAt(X, Y - 1) == GridElement.ElementState.Empty)
 				StartFalling();
 			break;
 		case BlockState.Falling:
@@ -68,14 +70,14 @@ public class Block : MonoBehaviour
 
 			if(FallElapsed >= FallDuration)
 			{
-				if(Grid.StateAt(X, Y - 1) == GridElement.ElementState.Empty)
+				if(grid.StateAt(X, Y - 1) == GridElement.ElementState.Empty)
 				{
 					// shift our grid position down to the next row
 					Y--;
 					FallElapsed = 0.0f;
 
-					Grid.Remove(X, Y + 1, this);
-					Grid.AddBlock(X, Y, this, GridElement.ElementState.Falling);
+					grid.Remove(X, Y + 1, this);
+					grid.AddBlock(X, Y, this, GridElement.ElementState.Falling);
 				}
 				else
 				{
@@ -85,10 +87,10 @@ public class Block : MonoBehaviour
 					State = BlockState.Static;
 
 					// update the grid
-					Grid.ChangeState(X, Y, this, GridElement.ElementState.Block);
+					grid.ChangeState(X, Y, this, GridElement.ElementState.Block);
 
 					// register for elimination checking
-					Grid.RequestEliminationCheck(this);
+					grid.RequestEliminationCheck(this);
 				}
 			}
 			break;
@@ -97,18 +99,21 @@ public class Block : MonoBehaviour
 
 			if(DieElapsed >= DieDuration)
 			{
+				// change the game state
+				game.DyingCount--;
+
 				// update the grid
-				Grid.Remove(X, Y, this);
+				grid.Remove(X, Y, this);
 
 				// tell our upward neighbor to fall (TODO: should be a combo fall)
 				if(Y < Grid.PlayHeight - 1)
 				{
-					if(Grid.StateAt(X, Y + 1) == GridElement.ElementState.Block)
-						Grid.BlockAt(X, Y + 1).StartFalling();
+					if(grid.StateAt(X, Y + 1) == GridElement.ElementState.Block)
+						grid.BlockAt(X, Y + 1).StartFalling();
 					// TODO: do the same for garbage
 				}
 
-				BlockManager.DeleteBlock(this);
+				blockManager.DeleteBlock(this);
 			}
 			break;
 		}
@@ -122,7 +127,7 @@ public class Block : MonoBehaviour
 
 		SwapFront = swapFront;
 
-		Grid.ChangeState(X, Y, this, GridElement.ElementState.Immutable);
+		grid.ChangeState(X, Y, this, GridElement.ElementState.Immutable);
 	}
 
 	public void FinishSwapping(int swapX)
@@ -133,7 +138,7 @@ public class Block : MonoBehaviour
 
 		X = swapX;
 
-		Grid.AddBlock(X, Y, this, GridElement.ElementState.Block);
+		grid.AddBlock(X, Y, this, GridElement.ElementState.Block);
 	}
 
 	public void StartFalling()
@@ -146,21 +151,24 @@ public class Block : MonoBehaviour
 
 		FallElapsed = FallDuration;
 
-		Grid.ChangeState(X, Y, this, GridElement.ElementState.Falling);
+		grid.ChangeState(X, Y, this, GridElement.ElementState.Falling);
 
 		if(Y < Grid.PlayHeight - 1)
 		{
-			if(Grid.StateAt(X, Y + 1) == GridElement.ElementState.Block)
-				Grid.BlockAt(X, Y + 1).StartFalling();
+			if(grid.StateAt(X, Y + 1) == GridElement.ElementState.Block)
+				grid.BlockAt(X, Y + 1).StartFalling();
 		}
 	}
 
 	public void StartDying(int sparkNumber)
 	{
+		// change the game state
+		game.DyingCount++;
+
 		State = BlockState.Dying;
 		DieElapsed = 0.0f;
 
-		Grid.ChangeState(X, Y, this, GridElement.ElementState.Immutable);
+		grid.ChangeState(X, Y, this, GridElement.ElementState.Immutable);
 
 		DyingAxis = Random.insideUnitCircle;
 	}

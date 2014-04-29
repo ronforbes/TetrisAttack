@@ -5,6 +5,7 @@ public class Creep : MonoBehaviour
 {
 	public BlockManager BlockManager;
 	public Grid Grid;
+	public Game Game;
 	public float CreepElapsed;
 	public const float CreepDuration = 10.0f;
 
@@ -19,6 +20,11 @@ public class Creep : MonoBehaviour
 	// Update is called once per frame
 	void Update () 
 	{
+		if(Game.DyingCount != 0)
+		{
+			return;
+		}
+
 		CreepElapsed += Time.deltaTime;
 
 		if(CreepElapsed >= CreepDuration)
@@ -34,7 +40,7 @@ public class Creep : MonoBehaviour
 				//link the elimination requests
 				for(int x = 0; x < Grid.PlayWidth; x++)
 				{
-					//Grid.RequestEliminationCheck(Grid.BlockAt(x, 1));
+					Grid.RequestEliminationCheck(Grid.BlockAt(x, 1));
 				}
 			}
 		}

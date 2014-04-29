@@ -13,7 +13,7 @@ public class Swapper : MonoBehaviour
 	public float SwapElapsed;
 	public float SwapDuration = 0.1f;
 	public Grid Grid;
-
+	
 	bool swapping;
 	Block selectedBlock;
 	Block leftBlock;
@@ -52,6 +52,8 @@ public class Swapper : MonoBehaviour
 			Vector3 mousePosition = Input.mousePosition;
 			mousePosition.z = Camera.main.transform.position.z * -1;
 
+			bool swapDisallowed = false;
+
 			if(Camera.main.ScreenToWorldPoint(mousePosition).x < leftEdge)
 			{
 				if(selectedBlock.X - 1 >= 0)
@@ -63,12 +65,30 @@ public class Swapper : MonoBehaviour
 							rightBlock = Grid.BlockAt(selectedBlock.X, selectedBlock.Y);
 						}
 					}
+					else
+					{
+						if(Grid.StateAt(selectedBlock.X, selectedBlock.Y) != GridElement.ElementState.Empty ||
+						   Grid.StateAt(selectedBlock.X, selectedBlock.Y - 1) == GridElement.ElementState.Falling)
+						{
+							// TODO: Once you implement hanging state, check for that too
+							swapDisallowed = true;
+						}
+					}
 
 					if(Grid.StateAt(selectedBlock.X - 1, selectedBlock.Y) == GridElement.ElementState.Block)
 					{
 						if(Grid.BlockAt(selectedBlock.X - 1, selectedBlock.Y) != null)
 						{
 							leftBlock = Grid.BlockAt(selectedBlock.X - 1, selectedBlock.Y);
+						}
+					}
+					else
+					{
+						if(Grid.StateAt(selectedBlock.X - 1, selectedBlock.Y) != GridElement.ElementState.Empty ||
+						   Grid.StateAt(selectedBlock.X - 1, selectedBlock.Y - 1) == GridElement.ElementState.Falling)
+						{
+							// TODO: Once you implement hanging state, check for that too
+							swapDisallowed = true;
 						}
 					}
 				}
@@ -85,6 +105,15 @@ public class Swapper : MonoBehaviour
 							leftBlock = Grid.BlockAt(selectedBlock.X, selectedBlock.Y);
 						}
 					}
+					else
+					{
+						if(Grid.StateAt(selectedBlock.X, selectedBlock.Y) != GridElement.ElementState.Empty ||
+						   Grid.StateAt(selectedBlock.X, selectedBlock.Y - 1) == GridElement.ElementState.Falling)
+						{
+							// TODO: Once you implement hanging state, check for that too
+							swapDisallowed = true;
+						}
+					}
 
 					if(Grid.StateAt(selectedBlock.X + 1, selectedBlock.Y) == GridElement.ElementState.Block)
 					{
@@ -93,17 +122,35 @@ public class Swapper : MonoBehaviour
 							rightBlock = Grid.BlockAt(selectedBlock.X + 1, selectedBlock.Y);
 						}
 					}
+					else
+					{
+						if(Grid.StateAt(selectedBlock.X + 1, selectedBlock.Y) != GridElement.ElementState.Empty ||
+						   Grid.StateAt(selectedBlock.X + 1, selectedBlock.Y - 1) == GridElement.ElementState.Falling)
+						{
+							// TODO: Once you implement hanging state, check for that too
+							swapDisallowed = true;
+						}
+					}
 				}
 			}
 
-			if(leftBlock)
-				leftBlock.StartSwapping(SwapDirection.Right, leftBlock == Grid.BlockAt(selectedBlock.X, selectedBlock.Y));
-			if(rightBlock)
-				rightBlock.StartSwapping(SwapDirection.Left, rightBlock == Grid.BlockAt(selectedBlock.X, selectedBlock.Y));
-			if(leftBlock || rightBlock)
+			if(!swapDisallowed)
 			{
-				swapping = true;
-				SwapElapsed = 0.0f;
+				if(leftBlock)
+					leftBlock.StartSwapping(SwapDirection.Right, leftBlock == Grid.BlockAt(selectedBlock.X, selectedBlock.Y));
+				if(rightBlock)
+					rightBlock.StartSwapping(SwapDirection.Left, rightBlock == Grid.BlockAt(selectedBlock.X, selectedBlock.Y));
+				
+				if(leftBlock || rightBlock)
+				{
+					swapping = true;
+					SwapElapsed = 0.0f;
+				}
+			}
+			else
+			{
+				leftBlock = null;
+				rightBlock = null;
 			}
 		}
 		
