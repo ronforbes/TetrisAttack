@@ -36,7 +36,8 @@ public class Swapper : MonoBehaviour
 				if(hit.collider.name == "Cube")
 				{
 					Block block = hit.collider.gameObject.transform.parent.gameObject.GetComponent<Block>();
-					if(Grid.StateAt(block.X, block.Y) == GridElement.ElementState.Block)
+					if(Grid.StateAt(block.X, block.Y) == GridElement.ElementState.Block &&
+					   block.Y > 0)
 					{
 						selectedBlock = block;
 					}
