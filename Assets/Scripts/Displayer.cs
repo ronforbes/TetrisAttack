@@ -4,10 +4,13 @@ using System.Collections;
 public class Displayer : MonoBehaviour {
 	public BlockManager BlockManager;
 	public Swapper Swapper;
+	public Creep Creep;
 
 	Color[] blockColors = new Color[Block.FlavorCount];
 	Color[] creepColors = new Color[Block.FlavorCount];
 	Color flashColor = new Color(1.0f, 1.0f, 1.0f);
+
+	float playOffsetY;
 
 	const float gridElementLength = 1.0f;
 	const float blockDyingFlashDuration = 0.2f;
@@ -27,9 +30,16 @@ public class Displayer : MonoBehaviour {
 		creepColors[3] = new Color(0.25f * 0.85f, 0.25f * 0.85f, 0.25f * 0.0f);
 		creepColors[4] = new Color(0.25f * 1.0f,  0.25f * 0.4f,  0.25f * 0.0f);
 	}
-	
+
+	public void CalculatePlayOffsetY()
+	{
+		playOffsetY = gridElementLength * Creep.CreepElapsed / Creep.CreepDuration;
+	}
+
 	// Update is called once per frame
 	void Update () {
+		CalculatePlayOffsetY();
+
 		DrawBlocks();
 	}
 
@@ -57,7 +67,7 @@ public class Displayer : MonoBehaviour {
 		float dX = 0.0f;
 
 		x = block.X * gridElementLength;
-		y = block.Y * gridElementLength;
+		y = block.Y * gridElementLength + playOffsetY;
 
 		switch(block.State)
 		{

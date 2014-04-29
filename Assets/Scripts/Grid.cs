@@ -41,6 +41,7 @@ public class Grid : MonoBehaviour
 	public GridElement[,] grid = new GridElement[Grid.PlayWidth, Grid.PlayHeight];
 	CheckRegistryElement[] checkRegistry = new CheckRegistryElement[BlockManager.BlockStoreSize];
 	int checkCount;
+	int topOccupiedRow;
 
 	// Use this for initialization
 	void Start () 
@@ -67,7 +68,10 @@ public class Grid : MonoBehaviour
 		{
 			int height = (shortColumn == x ? 2 : 7) + Random.Range(0, 2);
 
-			for(int y = height - 1; y >= 0; y--)
+			if(height - 1 > topOccupiedRow)
+				topOccupiedRow = height - 1;
+
+			for(int y = height - 1; y >= 1; y--)
 			{
 				int flavor;
 				do
@@ -88,6 +92,13 @@ public class Grid : MonoBehaviour
 					break;
 				} while(true);
 
+				// setup creep creation state
+				if(y == 2)
+					BlockManager.SecondToLastRowCreep[x] = flavor;
+				if(y == 1)
+					BlockManager.LastRowCreep[x] = flavor;
+
+				// create the block
 				BlockManager.NewBlock(x, y, flavor);
 			}
 		}
@@ -168,6 +179,22 @@ public class Grid : MonoBehaviour
 				HandleEliminationCheckRequest(block);
 			}
 		}
+
+		// update top occupied row
+		topOccupiedRow++;
+		bool flag = true;
+		do
+		{
+			topOccupiedRow--;
+			for(int x = 0; x < Grid.PlayWidth; x++)
+			{
+				if(StateAt(x, topOccupiedRow) != GridElement.ElementState.Empty)
+				{
+					flag = false;
+					break;
+				}
+			}
+		} while(flag);
 	}
 
 	void HandleEliminationCheckRequest(Block block)
@@ -243,7 +270,6 @@ public class Grid : MonoBehaviour
 			magnitude--;
 
 		// kill the pattern's blocks and look for touching garbage
-
 		block.StartDying(magnitude);
 
 		if(horizontalPattern)
@@ -253,6 +279,7 @@ public class Grid : MonoBehaviour
 			{
 				if(killX != x)
 				{
+					print (killX + ", " + y + ": " + BlockAt(killX, y).Flavor);
 					BlockAt(killX, y).StartDying(magnitude);
 				}
 			}
@@ -265,9 +292,36 @@ public class Grid : MonoBehaviour
 			{
 				if(killY != y)
 				{
-					BlockAt (x, killY).StartDying(magnitude);
+					BlockAt(x, killY).StartDying(magnitude);
 				}
 			}
 		}
+	}
+
+	public bool ShiftUp()
+	{
+		if(topOccupiedRow == PlayHeight - 1) 
+			return false;
+
+		// shift the grid
+		for(int y = topOccupiedRow + 1; y >= 0; y--)
+		{
+			for(int x = 0; x < PlayWidth; x++)
+			{
+				grid[x, y + 1] = grid[x, y];
+			}
+		}
+
+		// otherwise the assert will tag us
+		for(int x = 0; x < PlayWidth; x++)
+		{
+			grid[x, 0].State = GridElement.ElementState.Empty;
+		}
+
+		topOccupiedRow++;
+
+		BlockManager.ShiftUp();
+
+		return true;
 	}
 }

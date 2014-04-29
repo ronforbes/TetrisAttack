@@ -60,7 +60,6 @@ public class Block : MonoBehaviour
 		{
 		case BlockState.Static:
 			// we may have to fall
-
 			if(Grid.StateAt(X, Y - 1) == GridElement.ElementState.Empty)
 				StartFalling();
 			break;
@@ -100,6 +99,14 @@ public class Block : MonoBehaviour
 			{
 				// update the grid
 				Grid.Remove(X, Y, this);
+
+				// tell our upward neighbor to fall (TODO: should be a combo fall)
+				if(Y < Grid.PlayHeight - 1)
+				{
+					if(Grid.StateAt(X, Y + 1) == GridElement.ElementState.Block)
+						Grid.BlockAt(X, Y + 1).StartFalling();
+					// TODO: do the same for garbage
+				}
 
 				BlockManager.DeleteBlock(this);
 			}
