@@ -6,14 +6,21 @@ public class Creep : MonoBehaviour
 	public BlockManager BlockManager;
 	public Grid Grid;
 	public Game Game;
+	public Controller Controller;
 	public float CreepElapsed;
-	public const float CreepDuration = 10.0f;
+
+	public const float CreepDuration = 1.0f;
+
+	bool advance;
+	float creepDelayElapsed;
+	float creepDelaySpeed = 1.0f;
+
+	const float advanceDelaySpeed = 100.0f;
+	const float creepDelayDuration = 1.0f;
 
 	// Use this for initialization
 	void Start () 
 	{
-		CreepElapsed = 0.0f;
-
 		BlockManager.NewCreepRow();
 	}
 	
@@ -25,22 +32,55 @@ public class Creep : MonoBehaviour
 			return;
 		}
 
-		CreepElapsed += Time.deltaTime;
-
-		if(CreepElapsed >= CreepDuration)
+		if(advance || Controller.AdvanceCommand)
 		{
-			CreepElapsed = 0.0f;
-
-			// shift everything up one grid row
-			if(Grid.ShiftUp())
+			if(creepDelaySpeed < advanceDelaySpeed)
 			{
-				// create a new bottom creep row
-				BlockManager.NewCreepRow();
+				creepDelayElapsed += advanceDelaySpeed * Time.deltaTime;
+			}
+			else
+			{
+				creepDelayElapsed += creepDelaySpeed * Time.deltaTime;
+			}
 				
-				//link the elimination requests
-				for(int x = 0; x < Grid.PlayWidth; x++)
+			advance = true;
+		}
+		else
+		{
+			creepDelayElapsed += creepDelaySpeed * Time.deltaTime;
+		}
+
+		while(creepDelayElapsed >= creepDelayDuration)
+		{
+			creepDelayElapsed -= creepDelayDuration;
+
+			CreepElapsed += Time.deltaTime;
+
+			if(CreepElapsed >= CreepDuration)
+			{
+				CreepElapsed = 0.0f;
+				
+				// shift everything up one grid row
+				if(Grid.ShiftUp())
 				{
-					Grid.RequestEliminationCheck(Grid.BlockAt(x, 1));
+					// create a new bottom creep row
+					BlockManager.NewCreepRow();
+					
+					//link the elimination requests
+					for(int x = 0; x < Grid.PlayWidth; x++)
+					{
+						Grid.RequestEliminationCheck(Grid.BlockAt(x, 1));
+					}
+				}
+				else
+				{
+					creepDelayElapsed += creepDelayDuration;
+					CreepElapsed = CreepDuration - 0.1f;
+				}
+				
+				if(advance && !Controller.AdvanceCommand)
+				{
+					advance = false;
 				}
 			}
 		}
