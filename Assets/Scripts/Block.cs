@@ -5,6 +5,7 @@ public class Block : MonoBehaviour
 {
 	public enum BlockState
 	{
+		Awakening,
 		Static,
 		Swapping,
 		Falling,
@@ -16,6 +17,7 @@ public class Block : MonoBehaviour
 	public int X, Y;
 	public BlockState State;
 	public ComboTabulator CurrentCombo;
+	public float AwakenDuration;
 	public Swapper.SwapDirection Direction;
 	public bool SwapFront;
 	public float FallElapsed;
@@ -29,9 +31,11 @@ public class Block : MonoBehaviour
 	BlockManager blockManager;
 	Grid grid;
 	Game game;
+	float popDuration;
 
 	// Use this for initialization
-	void Start () {
+	void Start() 
+	{
 		blockManager = GameObject.Find("Block Manager").GetComponent<BlockManager>();
 		grid = GameObject.Find("Grid").GetComponent<Grid>();
 		game = GameObject.Find ("Game").GetComponent<Game>();
@@ -52,6 +56,27 @@ public class Block : MonoBehaviour
 		transform.position = new Vector3(X, Y, 0.0f);
 	}
 
+	// Untested
+	public void InitializeAwakening(int x, int y, int flavor, float popDuration, float awakenDuration, ComboTabulator combo, int popColor)
+	{
+		X = x;
+		Y = y;
+		Flavor = flavor;
+
+		State = BlockState.Awakening;
+		AwakenDuration = awakenDuration;
+		this.popDuration = popDuration;
+		//popDirection = BlockManager.GeneratePopDirection();
+		//this.popColor = popColor;
+		CurrentCombo = combo;
+
+		CurrentCombo.IncrementInvolvement();
+
+		//Game.AwakeningCount++;
+
+		grid.AddBlock(x, y, this, GridElement.ElementState.Immutable);
+	}
+
 	// Update is called once per frame
 	void Update () {
 		// don't update the creep row
@@ -64,6 +89,19 @@ public class Block : MonoBehaviour
 			// we may have to fall
 			if(grid.StateAt(X, Y - 1) == GridElement.ElementState.Empty)
 				StartFalling();
+			else
+				return;
+			break;
+		case BlockState.Awakening: // Untested
+			/* popElapsed += Time.deltaTime;
+			 * 
+			 * if(popElapsed >= popDuration)
+			 * {
+			 * 		// Play the pop sound
+			 * }
+			 * 
+			 * if( and some more stuff )
+			 */ 
 			break;
 		case BlockState.Falling:
 			FallElapsed += Time.deltaTime;
@@ -105,13 +143,15 @@ public class Block : MonoBehaviour
 				// update the grid
 				grid.Remove(X, Y, this);
 
-				// tell our upward neighbor to fall (TODO: should be a combo fall)
+				// tell our upward neighbor to fall
 				if(Y < Grid.PlayHeight - 1)
 				{
 					if(grid.StateAt(X, Y + 1) == GridElement.ElementState.Block)
-						grid.BlockAt(X, Y + 1).StartFalling();
+						grid.BlockAt(X, Y + 1).StartFalling(CurrentCombo);
 					// TODO: do the same for garbage
 				}
+
+				CurrentCombo.DecrementInvolvement();
 
 				blockManager.DeleteBlock(this);
 			}
@@ -141,7 +181,7 @@ public class Block : MonoBehaviour
 		grid.AddBlock(X, Y, this, GridElement.ElementState.Block);
 	}
 
-	public void StartFalling()
+	public void StartFalling(ComboTabulator combo = null)
 	{
 		if(State != BlockState.Static)
 			return;
@@ -153,17 +193,24 @@ public class Block : MonoBehaviour
 
 		grid.ChangeState(X, Y, this, GridElement.ElementState.Falling);
 
+		if(combo != null)
+		{
+			BeginComboInvolvement(combo);
+		}
+
 		if(Y < Grid.PlayHeight - 1)
 		{
 			if(grid.StateAt(X, Y + 1) == GridElement.ElementState.Block)
-				grid.BlockAt(X, Y + 1).StartFalling();
+				grid.BlockAt(X, Y + 1).StartFalling(CurrentCombo);
 		}
 	}
 
-	public void StartDying(int sparkNumber)
+	public void StartDying(ComboTabulator combo, int sparkNumber)
 	{
 		// change the game state
 		game.DyingCount++;
+
+		BeginComboInvolvement(combo);
 
 		State = BlockState.Dying;
 		DieElapsed = 0.0f;
@@ -171,5 +218,25 @@ public class Block : MonoBehaviour
 		grid.ChangeState(X, Y, this, GridElement.ElementState.Immutable);
 
 		DyingAxis = Random.insideUnitCircle;
+	}
+
+	public void BeginComboInvolvement(ComboTabulator combo)
+	{
+		if(CurrentCombo != null)
+		{
+			CurrentCombo.DecrementInvolvement();
+		}
+
+		CurrentCombo = combo;
+		CurrentCombo.IncrementInvolvement();
+	}
+
+	public void EndComboInvolvement(ComboTabulator combo)
+	{
+		if(CurrentCombo != null && CurrentCombo == combo)
+		{
+			CurrentCombo.DecrementInvolvement();
+			CurrentCombo = null;
+		}
 	}
 }

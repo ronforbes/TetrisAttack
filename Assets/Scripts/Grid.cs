@@ -31,6 +31,7 @@ public class CheckRegistryElement
 public class Grid : MonoBehaviour 
 {
 	public BlockManager BlockManager;
+	public ComboManager ComboManager;
 
 	public const int PlayWidth = 6;
 	public const int PlayHeight = 45;
@@ -42,6 +43,7 @@ public class Grid : MonoBehaviour
 	CheckRegistryElement[] checkRegistry = new CheckRegistryElement[BlockManager.BlockStoreSize];
 	int checkCount;
 	int topOccupiedRow;
+	int topEffectiveRow;
 
 	// Use this for initialization
 	void Start () 
@@ -102,6 +104,8 @@ public class Grid : MonoBehaviour
 				BlockManager.NewBlock(x, y, flavor);
 			}
 		}
+
+		topEffectiveRow = topOccupiedRow;
 	}
 
 	public GridElement.ElementState StateAt(int x, int y)
@@ -150,10 +154,16 @@ public class Grid : MonoBehaviour
 		grid[x, y].State = GridElement.ElementState.Empty;
 	}
 
-	public void RequestEliminationCheck(Block block)
+	public void RequestEliminationCheck(Block block, ComboTabulator combo = null)
 	{
 		checkRegistry[block.Id].Mark = true;
+		checkRegistry[block.Id].Combo = combo;
 		checkCount++;
+	}
+
+	public bool CheckSafeHeightViolation()
+	{
+		return topEffectiveRow >= SafeHeight - 1;
 	}
 
 	// Update is called once per frame
@@ -176,7 +186,7 @@ public class Grid : MonoBehaviour
 					continue;
 
 				// use the block's combo, if it has one
-				HandleEliminationCheckRequest(block);
+				HandleEliminationCheckRequest(block, block.CurrentCombo != null ? block.CurrentCombo : checkRegistry[n].Combo);
 			}
 		}
 
@@ -195,9 +205,25 @@ public class Grid : MonoBehaviour
 				}
 			}
 		} while(flag);
+
+		// update top effective row
+		topEffectiveRow++;
+		flag = true;
+		do
+		{
+			topEffectiveRow--;
+			for(int x = 0; x < Grid.PlayWidth; x++)
+			{
+				if(grid[x, topEffectiveRow].Type != GridElement.ElementType.Empty)
+				{
+					flag = false;
+					break;
+				}
+			}
+		} while(flag);
 	}
 
-	void HandleEliminationCheckRequest(Block block)
+	void HandleEliminationCheckRequest(Block block, ComboTabulator combo)
 	{
 		int x = block.X;
 		int y = block.Y;
@@ -263,14 +289,22 @@ public class Grid : MonoBehaviour
 		}
 
 		if(!horizontalPattern && !verticalPattern)
+		{
+			block.EndComboInvolvement(combo);
 			return;
+		}
+
+		if(combo == null)
+		{
+			combo = ComboManager.NewComboTabulator();
+		}
 
 		// if pattern matches both directions
 		if(horizontalPattern && verticalPattern)
 			magnitude--;
 
 		// kill the pattern's blocks and look for touching garbage
-		block.StartDying(magnitude);
+		block.StartDying(combo, magnitude);
 
 		if(horizontalPattern)
 		{
@@ -279,7 +313,7 @@ public class Grid : MonoBehaviour
 			{
 				if(killX != x)
 				{
-					BlockAt(killX, y).StartDying(magnitude);
+					BlockAt(killX, y).StartDying(combo, magnitude);
 				}
 			}
 		}
@@ -291,10 +325,12 @@ public class Grid : MonoBehaviour
 			{
 				if(killY != y)
 				{
-					BlockAt(x, killY).StartDying(magnitude);
+					BlockAt(x, killY).StartDying(combo, magnitude);
 				}
 			}
 		}
+
+		combo.ReportElimination(magnitude, block);
 	}
 
 	public bool ShiftUp()
@@ -320,6 +356,7 @@ public class Grid : MonoBehaviour
 		}
 
 		topOccupiedRow++;
+		topEffectiveRow++;
 
 		BlockManager.ShiftUp();
 

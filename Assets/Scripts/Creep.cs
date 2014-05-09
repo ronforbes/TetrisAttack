@@ -11,10 +11,13 @@ public class Creep : MonoBehaviour
 
 	public const float CreepDuration = 1.0f;
 
+	bool creepFreeze;
+	float lossElapsed;
 	bool advance;
 	float creepDelayElapsed;
 	float creepDelaySpeed = 1.0f;
 
+	const float lossDuration = 3.0f;
 	const float advanceDelaySpeed = 100.0f;
 	const float creepDelayDuration = 1.0f;
 
@@ -30,6 +33,29 @@ public class Creep : MonoBehaviour
 		if(Game.DyingCount != 0)
 		{
 			return;
+		}
+
+		if(creepFreeze)
+		{
+			if(!Grid.CheckSafeHeightViolation())
+				creepFreeze = false;
+			else
+			{
+				lossElapsed += Time.deltaTime;
+
+				if(lossElapsed >= lossDuration)
+					Game.Lose();
+
+				return;
+			}
+		}
+		else
+		{
+			if(Grid.CheckSafeHeightViolation())
+			{
+				creepFreeze = true;
+				lossElapsed = 0.0f;
+			}
 		}
 
 		if(advance || Controller.AdvanceCommand)

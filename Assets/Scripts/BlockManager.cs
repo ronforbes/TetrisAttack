@@ -41,6 +41,18 @@ public class BlockManager : MonoBehaviour {
 		block.InitializeStatic(x, y, flavor);
 	}
 
+	public void NewBlock(int x, int y, int flavor, float popDuration, float awakenDuration, ComboTabulator combo, int popColor)
+	{
+		if(BlockCount == BlockStoreSize)
+			return;
+
+		int id = FindFreeId();
+		AllocateId(id);
+		Block block = BlockStore[id];
+
+		block.InitializeAwakening(x, y, flavor, popDuration, awakenDuration, combo, popColor);
+	}
+
 	public void NewCreepRow()
 	{
 		for(int x = 0; x < Grid.PlayWidth; x++)
@@ -71,6 +83,26 @@ public class BlockManager : MonoBehaviour {
 		lastFlavorCreep = flavor;
 
 		NewBlock(x, 0, flavor);
+	}
+
+	// Untested
+	public void NewAwakeningBlock(int x, int y, float popDuration, float awakenDuration, ComboTabulator combo, int popColor)
+	{
+		int flavor;
+
+		do
+		{
+			flavor = Random.Range(0, Block.FlavorCount);
+		} while((flavor == lastFlavorCreep && lastFlavorCreep == secondToLastFlavorCreep) ||
+		        (flavor == LastRowCreep[x] && LastRowCreep[x] == SecondToLastRowCreep[x]));
+
+		SecondToLastRowCreep[x] = LastRowCreep[x];
+		LastRowCreep[x] = flavor;
+
+		secondToLastFlavorCreep = lastFlavorCreep;
+		lastFlavorCreep = flavor;
+
+		NewBlock(x, y, flavor, popDuration, awakenDuration, combo, popColor);
 	}
 
 	public void DeleteBlock(Block block)
